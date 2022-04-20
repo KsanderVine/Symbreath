@@ -3,61 +3,82 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
+///To-Do:
+///Поиск в зоне
+///Поиск в радиусе
+///Счет в зоне всех символов
+///Счет в зоне определенных символов
+///Определение путей
+
 public class Map : MonoBehaviour
 {
-    public static Map instance;
-    public void Awake() { instance = this; }
-
-    public int gameTurn;
-    public string mapGrid;
+    public static Map instance { get; private set; }
+    
+    protected int gameTurn;
+    protected int seed;
+    protected char[] mapGrid;
 
     public int mapSizeX = 100;
     public int mapSizeY = 100;
 
     private float turnDelay;
-    private float delayTime = 0.1f;
+    private float delayTime = 0.025f;
     
     [Header("UI:")]
-    public Text mapGridUI;
-    
+    public UIGrid mapGridUI;
+
+    public void Awake()
+    {
+        instance = this;
+    }
+
     public void Start()
     {
         Generate();
     }
 
-    public static void Generate() { instance._Generate(); }
+    public static void Generate()
+    {
+        instance._Generate();
+    }
     private void _Generate ()
     {
+        seed = Random.Range(0, 10000);
+
         gameTurn = 0;
         turnDelay = delayTime;
-        mapGrid = string.Empty;
+        mapGrid = new char[mapSizeX * mapSizeY];
 
         Symbol ground = Symbols.Get(0);
         for (int i = 0; i < (mapSizeX * mapSizeY); i++)
         {
-            mapGrid += ground.symbolID;
+            mapGrid[i] = '#';
         }
 
-        SetMapSymbol('@', ToGridCoordinates(Random.Range(0, (mapSizeX * mapSizeY) - 1)));
-        
-        for (int i = 0; i < mapSizeX * 14; i++)
-            SetMapSymbol('~', ToGridCoordinates(Random.Range(0, (mapSizeX * mapSizeY) - 1)));
+        for (int x = 0; x < mapSizeX; x++)
+        {
+            for (int y = 0; y < mapSizeY; y++)
+            {
+                float noizeValue = Noise.Generate((seed + x) * 0.04f, y * 0.125f);
+                if(noizeValue > 0)
+                    SetMapSymbol('.', new Vector2Int(x,y));
+            }
+        }
+        for (int i = 0; i < mapSizeX * 10; i++)
+            SetMapSymbol('~', i, '.');
 
-
-        /*SetMapSymbol('i', ToGridCoordinates(Random.Range(0, (mapSizeX * mapSizeY) - 1)));
-        SetMapSymbol('i', ToGridCoordinates(Random.Range(0, (mapSizeX * mapSizeY) - 1)));
-        SetMapSymbol('i', ToGridCoordinates(Random.Range(0, (mapSizeX * mapSizeY) - 1)));
-        SetMapSymbol('i', ToGridCoordinates(Random.Range(0, (mapSizeX * mapSizeY) - 1)));
-        SetMapSymbol('i', ToGridCoordinates(Random.Range(0, (mapSizeX * mapSizeY) - 1)));*/
+        for (int i = 0; i < mapSizeX * 10; i++)
+            SetMapSymbol('`', 3000 + i, '.');
     }
 
-    //Поиск в зоне, в радиусе
-    //Счет в зоне всех символов
-    //Счет в зоне определенных символов
-    //Определение путей
-    //Акселерометр
+    public static bool IsGround (int index)
+    {
+        if(IsOutOfRange(index) == false)
+            return instance.mapGrid[index] == Symbols.groundChar;
+        return false;
+    }
 
-    public static bool IsGround (Vector2Int point)
+    public static bool IsGround(Vector2Int point)
     {
         return GetOnMap(point) == Symbols.groundChar;
     }
@@ -66,7 +87,16 @@ public class Map : MonoBehaviour
     {
         if (!IsOutOfRange(point))
         {
-            int index = instance.ToSymbolIndex(point);
+            int index = ToSymbolIndex(point);
+            return instance.mapGrid[index];
+        }
+        return ' ';
+    }
+
+    public static char GetOnMap(int index)
+    {
+        if (!IsOutOfRange(index))
+        {
             return instance.mapGrid[index];
         }
         return ' ';
@@ -76,31 +106,87 @@ public class Map : MonoBehaviour
     {
         instance._SetMapSymbol(symbolID, point);
     }
-    public static void SetMapSymbol(char symbolID, Vector2Int point, char condition)
+    public static void SetMapSymbol(char symbolID, Vector2Int point, params char[] condition)
     {
-        if(GetOnMap(point) == condition)
+        if (IsAnyOfCondition(point, condition))
             instance._SetMapSymbol(symbolID, point);
     }
     private void _SetMapSymbol(char symbolID, Vector2Int point)
     {
-        if (IsOutOfRange(point)) return;
+        if (IsOutOfRange(point))
+            return;
+
         int index = ToSymbolIndex(point);
-        System.Text.StringBuilder grid = new System.Text.StringBuilder(mapGrid);
-        grid[index] = symbolID;
-        mapGrid = grid.ToString();
+        mapGrid[index] = symbolID;
     }
 
-    public static void MoveSymbol (Vector2Int pointFrom, Vector2Int pointTo)
+    public static void SetMapSymbol(char symbolID, int index)
     {
-        instance._MoveSymbol(pointFrom, pointTo);
+        instance._SetMapSymbol(symbolID, index);
     }
-    private void _MoveSymbol (Vector2Int pointFrom, Vector2Int pointTo)
+    public static void SetMapSymbol(char symbolID, int index, params char[] condition)
+    {
+        if (IsAnyOfCondition(index, condition))
+            instance._SetMapSymbol(symbolID, index);
+    }
+    private void _SetMapSymbol(char symbolID, int index)
+    {
+        if (IsOutOfRange(index))
+            return;
+        mapGrid[index] = symbolID;
+    }
+
+    public static bool IsAnyOfCondition (char symbolID, params char[] condition)
+    {
+        for(int i = 0; i < condition.Length; i++)
+        {
+            if (condition[i] == symbolID)
+                return true;
+        }
+        return false;
+    }
+
+    public static bool IsAnyOfCondition(int index, params char[] condition)
+    {
+        char symbolID = GetOnMap(index);
+        for (int i = 0; i < condition.Length; i++)
+        {
+            if (condition[i] == symbolID)
+                return true;
+        }
+        return false;
+    }
+
+    public static bool IsAnyOfCondition(Vector2Int point, params char[] condition)
+    {
+        char symbolID = GetOnMap(point);
+        for (int i = 0; i < condition.Length; i++)
+        {
+            if (condition[i] == symbolID)
+                return true;
+        }
+        return false;
+    }
+
+    public static void MoveSymbol (int indexFrom, int indexTo)
+    {
+        char from = GetOnMap(indexFrom);
+        char to = GetOnMap(indexTo);
+
+        if (from == ' ' || to == ' ')
+            return;
+
+        SetMapSymbol(from, indexTo);
+        SetMapSymbol(to, indexFrom);
+    }
+
+    public static void MoveSymbol(Vector2Int pointFrom, Vector2Int pointTo)
     {
         char from = GetOnMap(pointFrom);
         char to = GetOnMap(pointTo);
-        if (from == ' ' || to == ' ') return;
 
-        //Debug.Log(from + " > " + to);
+        if (from == ' ' || to == ' ')
+            return;
 
         SetMapSymbol(from, pointTo);
         SetMapSymbol(to, pointFrom);
@@ -119,29 +205,55 @@ public class Map : MonoBehaviour
         return (x < 0 || x >= mapSizeX || y < 0 || y >= mapSizeY);
     }
 
-    private Vector2Int ToGridCoordinates (int index)
+    public static bool IsOutOfRange(int index)
     {
-        int x = Mathf.Clamp(Mathf.FloorToInt(index % mapSizeX), 0, mapSizeX - 1);
-        int y = Mathf.Clamp(Mathf.FloorToInt(index / mapSizeX), 0, mapSizeY - 1);
+        return instance._IsOutOfRange(index);
+    }
+    private bool _IsOutOfRange(int index)
+    {
+        return (index < 0 || index >= mapGrid.Length);
+    }
+
+    public static Vector2Int ToGridCoordinates (int index)
+    {
+        int x = GetX(index);
+        int y = GetY(index);
         return new Vector2Int(x, y);
     }
-    private int ToSymbolIndex(Vector2Int gridCoordinates)
+
+    public static int ToSymbolIndex(Vector2Int gridCoordinates)
     {
-        return gridCoordinates.y * mapSizeX + gridCoordinates.x;
+        return gridCoordinates.y * instance.mapSizeX + gridCoordinates.x;
+    }
+
+    public static int GetX(int index)
+    {
+        return Mathf.Clamp(Mathf.FloorToInt(index % instance.mapSizeX), 0, instance.mapSizeX - 1);
+    }
+
+    public static int GetY(int index)
+    {
+        return Mathf.Clamp(Mathf.FloorToInt(index / instance.mapSizeX), 0, instance.mapSizeY - 1);
+    }
+
+    public static int Offset (int index, Vector2Int offset)
+    {
+        index += (offset.y * instance.mapSizeX);
+        index += offset.x;
+        return index;
     }
 
     private void Tick ()
     {
-        string mapGrid = this.mapGrid;
+        string mapGrid = string.Concat(this.mapGrid);
 
         for(int i = 0; i < mapGrid.Length; i++)
         {
-            Vector2Int gridCoordinates = ToGridCoordinates(i);
-            Symbols.Get(mapGrid[i]).Simulate(gameTurn, gridCoordinates);
-            /*if (mapGrid[i] == '@')
-            {
-                Debug.Log(i + " " + ToGridCoordinates(i) + " == " + ToSymbolIndex(ToGridCoordinates(i)));
-            }*/
+            Symbol symbol = Symbols.Get(mapGrid[i]);
+            if (symbol != null)
+                symbol.Simulate(gameTurn, i);
+            else
+                SetMapSymbol('.', i);
         }
 
         string mapText = string.Empty;
@@ -151,11 +263,16 @@ public class Map : MonoBehaviour
             mapText += "\n" + mapGrid.Substring(i, mapSizeX);
         }
 
-        mapGridUI.text = mapText;
+        mapGridUI.map.text = mapText;
     }
 
-    public void Update()
+    public void FixedUpdate()
     {
+        if(mapGridUI.map.isFocused)
+        {
+            return;
+        }
+
         if(Input.GetKeyUp(KeyCode.Space))
         {
             Generate();
@@ -163,7 +280,7 @@ public class Map : MonoBehaviour
             return;
         }
 
-        turnDelay -= Time.deltaTime;
+        turnDelay -= Time.fixedDeltaTime;
         if(turnDelay < 0)
         {
             turnDelay = delayTime;
