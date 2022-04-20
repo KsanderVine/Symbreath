@@ -69,6 +69,50 @@ public class Map : MonoBehaviour
 
         for (int i = 0; i < mapSizeX * 10; i++)
             SetMapSymbol('`', 3000 + i, '.');
+
+        for(int i = 0; i < 30; i++)
+        {
+            int x = Random.Range(0, mapSizeX);
+            int y = Random.Range(0, mapSizeY);
+            int index = ToSymbolIndex(x, y);
+
+            while (IsGround(index) == false)
+            {
+                x = Random.Range(0, mapSizeX);
+                y = Random.Range(0, mapSizeY);
+                index = ToSymbolIndex(x, y);
+            }
+
+            int indexY = 0;
+            while (GetOnMap(index - indexY * mapSizeY) != '#')
+            {
+                indexY++;
+            }
+            indexY -= 1;
+            SetMapSymbol('v', index - indexY * mapSizeY);
+        }
+
+        for (int i = 0; i < 30; i++)
+        {
+            int x = Random.Range(0, mapSizeX);
+            int y = Random.Range(0, mapSizeY);
+            int index = ToSymbolIndex(x, y);
+
+            while (IsGround(index) == false)
+            {
+                x = Random.Range(0, mapSizeX);
+                y = Random.Range(0, mapSizeY);
+                index = ToSymbolIndex(x, y);
+            }
+
+            int indexY = 0;
+            while (GetOnMap(index + indexY * mapSizeY) != '#')
+            {
+                indexY++;
+            }
+            indexY -= 1;
+            SetMapSymbol('i', index + indexY * mapSizeY);
+        }
     }
 
     public static bool IsGround (int index)
@@ -224,6 +268,11 @@ public class Map : MonoBehaviour
     public static int ToSymbolIndex(Vector2Int gridCoordinates)
     {
         return gridCoordinates.y * instance.mapSizeX + gridCoordinates.x;
+    }
+
+    public static int ToSymbolIndex(int x, int y)
+    {
+        return y * instance.mapSizeX + x;
     }
 
     public static int GetX(int index)

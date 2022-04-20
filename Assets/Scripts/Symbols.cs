@@ -124,48 +124,39 @@ public class Symbols : MonoBehaviour
                 }
             }));
 
-        /*AddSymbol(new Symbol('i',
-            (turn, point) => {
-                if (turn % 100 == 0)
-                    Map.SetMapSymbol('r', point);
-            }));
-        AddSymbol(new Symbol('r',
-            (turn, point) => {
+        AddSymbol(new Symbol('v',
+            (turn, index) =>
+            {
                 if (turn % 220 == 0)
-                    Map.SetMapSymbol('y', point);
-            }));
-        AddSymbol(new Symbol('y',
-            (turn, point) => {
-                if (turn % 290 == 0)
-                    Map.SetMapSymbol('Y', point);
-            }));
-        AddSymbol(new Symbol('Y',
-            (turn, point) => {
-                if (turn % 380 == 0)
                 {
-                    for (int i = 0; i < Random.Range(0, 3); i++)
-                    {
-                        int x = Mathf.FloorToInt((Random.Range(-3, 4)));
-                        int y = Mathf.FloorToInt((Random.Range(-3, 4)));
-                        Map.SetMapSymbol('i', point + new Vector2Int(x, y), '.');
-                    }
+                    if (Map.IsGround(Map.Offset(index, down)))
+                        Map.SetMapSymbol('v', Map.Offset(index, down));
                 }
-            }));*/
-        /*AddSymbol(new Symbol('@', 
-            (turn, point) => {
-                if (turn % 100 == 0)
-                {
-                    int x = Mathf.FloorToInt((Random.Range(-1, 2)));
-                    int y = Mathf.FloorToInt((Random.Range(-1, 2)));
-                    Map.SetMapSymbol('@', point + new Vector2Int(x, y), '.');
-                }
+            }));
 
-                int moveX = Mathf.FloorToInt((Random.Range(-1, 2)));
-                int moveY = Mathf.FloorToInt((Random.Range(-1, 2)));
-                Vector2Int target = point + new Vector2Int(moveX, moveY);
-                if (Map.IsGround(target))
-                    Map.MoveSymbol(point, target);
-            }));*/
+        AddSymbol(new Symbol('i',
+            (turn, index) => {
+                if (turn % 100 == 0)
+                    Map.SetMapSymbol('r', index);
+            }));
+
+        AddSymbol(new Symbol('r',
+            (turn, index) => {
+                if (turn % 220 == 0)
+                    Map.SetMapSymbol('y', index);
+            }));
+
+        AddSymbol(new Symbol('y',
+            (turn, index) => {
+                if (turn % 290 == 0)
+                    Map.SetMapSymbol('Y', index);
+            }));
+
+        AddSymbol(new Symbol('Y',
+            (turn, index) => {
+                if (turn % 380 == 0)
+                    Map.SetMapSymbol('i', index);
+            }));
     }
 }
 
